@@ -1,0 +1,62 @@
+apiVersion: v1
+items:
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: elasticsearch
+    namespace: default
+    labels:
+      app: elasticsearch
+      tier: db
+  spec:
+    selector:
+      app: elasticsearch
+      tier: db
+    ports:
+    - name: api
+      port: 9200
+      targetPort: 9200
+
+- apiVersion: extensions/v1beta1
+  kind: Deployment
+  metadata:
+    name: es-node
+    namespace: default
+    labels:
+      app: elasticsearch
+      tier: db
+  spec:
+    selector:
+      matchLabels:
+        app: elasticsearch
+        tier: db
+    replicas: 1
+    template:
+      metadata:
+        labels:
+          app: elasticsearch
+          tier: db
+      spec:
+        initContainers:
+        - name: init-sysctl
+          image: busybox:1.27.2
+          command:
+          - sysctl
+          - -w
+          - vm.max_map_count=262144
+          securityContext:
+            privileged: true
+        containers:
+        - image: kuzzleio/elasticsearch:5.4.1
+          name: elasticsearch
+          env:
+          - name: ES_JAVA_OPTS
+            value: -Xms512m -Xmx512m
+          - name: cluster.name
+            value: kuzzle
+          ports:
+          - containerPort: 9200
+          - containerPort: 9300
+        restartPolicy: Always
+kind: List
+metadata: {}
