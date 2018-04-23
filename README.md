@@ -1,13 +1,32 @@
 # Kuzzle for Kubernetes
 Kubernetes YML files to deploy Kuzzle stack
 
+# Overview
+
+![Kuzzle Kubernetes](.doc/kuzzle-kubernetes.png)
+
 # Prerequisites
 
 * A VM provider like [VirtualBox](https://www.virtualbox.org/wiki/Downloads) or [KVM](https://www.linux-kvm.org/page/Main_Page#)
 * Minikube (prefer version [__v0.25.2__](https://github.com/kubernetes/minikube/releases/tag/v0.25.2))
-* Kubectl (prefer version [__v1.9.4__](https://storage.googleapis.com/kubernetes-release/release/v1.9.4/bin/linux/amd64/kubectl))
+* Kubectl (prefer version [__v1.9.4__](https://kubernetes.io/docs/tasks/tools/install-kubectl/))
+
+You can install Minikube used for this project with :
+
+```bash
+$ curl -Lo minikube https://storage.googleapis.com/minikube/releases/v0.25.2/minikube-linux-amd64 && chmod +x minikube && sudo mv minikube /usr/local/bin/minikube
+```
+
+Same for Kubectl :
+
+```bash
+$ curl -LO https://storage.googleapis.com/kubernetes-release/release/v1.9.4/bin/linux/amd64/kubectl && chmod +x kubectl && sudo mv kubectl /usr/local/bin/kubectl
+```
+
 
 # Deployment
+
+ Start the Minikube VM using minikube start and force your kubectl version.
 
 ```bash
 $ minikube start --kubernetes-version v1.9.4
@@ -26,23 +45,40 @@ Setting up kubeconfig...
 Starting cluster components...
 Kubectl is now configured to use the cluster.
 Loading cached images from config file.
-# Wait ~ 1min to let all addons get ready (especially 'kube-dns') ;
+```
+Wait ~ 1min to let all addons get ready (especially 'kube-dns').
 
-# Here running order is important ;
-# Wait until each container is started
-# before proceeding to the next step ;
+
+> Here running order is important. Wait until each container is started
+> before proceeding to the next step
+
+First create Elasticsearch service and deployment for Kuzzle storage :
+
+```bash
 $ kubectl create -f elasticsearch.yml
 service "elasticsearch" created
-deployment "es-node" created
+deployment "es-node" created    
+```
 
+Next, Redis for memory cache :
+
+```bash
 $ kubectl create -f redis.yml
 service "redis" created
 deployment "redis-node" created
+```
 
+Finally, when Elasticsearch and Redis are availble, your Kuzzle server :
+
+```bash
 $ kubectl create -f kuzzle.yml
 service "kuzzle" created
 deployment "kuzzle-node" created
+```
 
+Now you can check your Kubernetes cluster :
+
+```bash
 $ kubectl get pods,deployments,services,endpoints
 NAME                             READY     STATUS    RESTARTS   AGE
 po/es-node-67b6c9c974-rrqp8      1/1       Running   0          2m
@@ -65,9 +101,12 @@ ep/elasticsearch   172.17.0.4:9200    1m
 ep/kubernetes      10.0.2.15:8443     5m
 ep/kuzzle          172.17.0.6:7512   15s
 ep/redis           172.17.0.5:6379   45s
+```
 
-# When all containers are up and ready you can test your Kuzzle server
-$ curl $(minikube ip):7512/_now | jq                                                  
+When all containers are up and ready you can test your Kuzzle server :
+
+```bash
+$ curl $(minikube ip):7512/_now\?pretty                                                 
 
 {
   "requestId": "fadcca66-84c5-4f65-9324-8d30c674cbd9",
@@ -84,6 +123,19 @@ $ curl $(minikube ip):7512/_now | jq
 }
 
 ```
+
+If you want to stop your cluster type :
+
+```bash
+$ minikube stop
+```
+
+To delete cluster (you will need to create all  services and deployments) :
+
+```bash
+$ minikube delete
+```
+
 
 # TODO
 
